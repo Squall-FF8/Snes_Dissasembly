@@ -7,7 +7,7 @@ uses
   Dialogs, StdCtrls, ExtCtrls, Spin;
 
 type
-  TForm1 = class(TForm)
+  TfmMain = class(TForm)
     Panel1: TPanel;
     bLoad: TButton;
     dOpen: TOpenDialog;
@@ -19,6 +19,8 @@ type
     Memo: TMemo;
     seLen: TSpinEdit;
     Label3: TLabel;
+    cbAcc16: TCheckBox;
+    cbInd16: TCheckBox;
     procedure bLoadClick(Sender: TObject);
     procedure bStartClick(Sender: TObject);
   private
@@ -28,7 +30,7 @@ type
   end;
 
 var
-  Form1: TForm1;
+  fmMain: TfmMain;
 
 implementation
 {$R *.dfm}
@@ -268,7 +270,7 @@ const
     (Name:'CMP';  Len:4;  Addr:21),
     (Name:'CPX';  Len:2;  Addr:1),
     (Name:'SBC';  Len:2;  Addr:6),
-    (Name:'SEP';  Len:2;  Addr:0),
+    (Name:'SEP';  Len:2;  Addr:1),
     (Name:'SBC';  Len:2;  Addr:19),
     (Name:'CPX';  Len:2;  Addr:16),
     (Name:'SBC';  Len:2;  Addr:16),
@@ -333,7 +335,7 @@ var
 
 
 
-procedure TForm1.bLoadClick(Sender: TObject);
+procedure TfmMain.bLoadClick(Sender: TObject);
   var f, n: cardinal;
 begin
   if not dOpen.Execute then exit;
@@ -346,6 +348,8 @@ begin
   SetLength(ROM, n);
   ReadFile(f, ROM[0], n, n, nil);
   CloseHandle(f);
+
+  Caption := dOpen.FileName;
 end;
 
 
@@ -364,7 +368,7 @@ function ParseParam(Prm, Len: byte; Off, Addr: integer): string;
       b: smallint;
 begin
   Result := ' ';
-  if (Prm > 0) and (Prm < 22) then Result := format(cFmtAddr[Prm], [Param])
+{  if (Prm > 0) and (Prm < 22) then Result := format(cFmtAddr[Prm], [Param])
   else if Prm = 22 then begin
     c := ROM[Off];
     Result := format(' $%.4x', [Addr + c + 2]);
@@ -372,19 +376,31 @@ begin
     b := pSmallInt(@ROM[Off])^;
     Result := format(' $%.4x', [Addr + b +3]);
   end else if Prm = 24 then
-    Result := format(' $%d,$%d', [ ROM[Off], ROM[Off+1] ]);
+    Result := format(' $%d,$%d', [ ROM[Off], ROM[Off+1] ]);}
+  case Prm of
+    1..21: Result := format(cFmtAddr[Prm], [Param]);
+    22: begin
+      c := ROM[Off];
+      Result := format(' $%.4x', [Addr + c + 2]);
+     end;
+    23: begin
+      b := pSmallInt(@ROM[Off])^;
+      Result := format(' $%.4x', [Addr + b +3]);
+     end;
+    24: Result := format(' $%d,$%d', [ ROM[Off], ROM[Off+1] ]);
+  end;
 end;
 
 
-procedure TForm1.bStartClick(Sender: TObject);
+procedure TfmMain.bStartClick(Sender: TObject);
   var i, j: integer;
       o, a: integer;
       s: string;
       c, l, b,
       Acc16, Ind16: byte;  // 0 - 8 bit; 1 - 16 bit
 begin
-  Acc16 := 0;
-  Ind16 := 0;
+  Acc16 := ord(cbAcc16.Checked);
+  Ind16 := ord(cbInd16.Checked);
 
   o := StrToInt(eOffset.Text);
   a := StrToInt(eAddress.Text);
@@ -404,7 +420,7 @@ begin
     for j := l to 3 do
       s := s + '   ';
     s := s + CPU[c].Name;
-    s := s + ParseParam(CPU[c].Addr, l-1, o+1, a);
+    s := s + ParseParam(CPU[c].Addr, l-1, o+1, a and $FFFF);
 
     b := ROM[o+1];
     if c = $C2 then begin  // REP

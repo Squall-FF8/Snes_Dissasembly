@@ -1,9 +1,9 @@
-object Form1: TForm1
+object fmMain: TfmMain
   Left = 404
   Top = 119
   Width = 844
   Height = 563
-  Caption = 'Form1'
+  Caption = 'Disassembly'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -11,6 +11,7 @@ object Form1: TForm1
   Font.Name = 'MS Sans Serif'
   Font.Style = []
   OldCreateOrder = False
+  Position = poDesktopCenter
   PixelsPerInch = 96
   TextHeight = 13
   object Panel1: TPanel
@@ -21,18 +22,18 @@ object Form1: TForm1
     Align = alTop
     TabOrder = 0
     object Label1: TLabel
-      Left = 120
+      Left = 112
       Top = 8
-      Width = 31
+      Width = 50
       Height = 13
-      Caption = 'Offset:'
+      Caption = 'File Offset:'
     end
     object Label2: TLabel
-      Left = 216
+      Left = 208
       Top = 8
-      Width = 41
+      Width = 69
       Height = 13
-      Caption = 'Address:'
+      Caption = 'ROM Address:'
     end
     object Label3: TLabel
       Left = 296
@@ -61,13 +62,13 @@ object Form1: TForm1
     object eAddress: TEdit
       Left = 208
       Top = 24
-      Width = 81
+      Width = 73
       Height = 21
       TabOrder = 2
       Text = '$C00000'
     end
     object bStart: TButton
-      Left = 392
+      Left = 472
       Top = 16
       Width = 75
       Height = 25
@@ -78,12 +79,28 @@ object Form1: TForm1
     object seLen: TSpinEdit
       Left = 296
       Top = 24
-      Width = 65
+      Width = 49
       Height = 22
       MaxValue = 0
       MinValue = 0
       TabOrder = 4
       Value = 10
+    end
+    object cbAcc16: TCheckBox
+      Left = 368
+      Top = 16
+      Width = 89
+      Height = 17
+      Caption = '16-bit A'
+      TabOrder = 5
+    end
+    object cbInd16: TCheckBox
+      Left = 368
+      Top = 32
+      Width = 81
+      Height = 17
+      Caption = '16-bit X/Y'
+      TabOrder = 6
     end
   end
   object Memo: TMemo
