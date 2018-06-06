@@ -9,22 +9,39 @@ uses
 type
   TfmMain = class(TForm)
     Panel1: TPanel;
-    bLoad: TButton;
-    dOpen: TOpenDialog;
+    bLoadROM: TButton;
+    dOpenROM: TOpenDialog;
     Label1: TLabel;
     eOffset: TEdit;
     Label2: TLabel;
     eAddress: TEdit;
-    bStart: TButton;
+    bParseCmd: TButton;
     Memo: TMemo;
     seLen: TSpinEdit;
     Label3: TLabel;
     cbAcc16: TCheckBox;
     cbInd16: TCheckBox;
+    bParseByte: TButton;
+    bParseCode: TButton;
+    Panel2: TPanel;
+    lbSub: TListBox;
+    Panel3: TPanel;
+    bAddSub: TButton;
+    bLoad: TButton;
+    bSave: TButton;
+    dSave: TSaveDialog;
+    dOpen: TOpenDialog;
+    procedure bLoadROMClick(Sender: TObject);
+    procedure bParseCmdClick(Sender: TObject);
+    procedure bAddSubClick(Sender: TObject);
+    procedure lbSubDrawItem(Control: TWinControl; Index: Integer;
+      Rect: TRect; State: TOwnerDrawState);
+    procedure bSaveClick(Sender: TObject);
     procedure bLoadClick(Sender: TObject);
-    procedure bStartClick(Sender: TObject);
+    procedure lbSubClick(Sender: TObject);
   private
-    { Private declarations }
+    procedure Parse(Method: integer);
+    procedure EmptyList;
   public
     { Public declarations }
   end;
@@ -32,8 +49,12 @@ type
 var
   fmMain: TfmMain;
 
+
 implementation
 {$R *.dfm}
+
+uses uSubroutine;
+
 
 type
   tCPU = record
@@ -329,18 +350,49 @@ cFmtAddr: array[1..23] of string = (
                  //srcbk,destbk
   );
 
+  // Parse method constants
+  cMthCmd  = 1;
+  cMthByte = 2;
+  cMthCode = 3;
+
+
+type
+  tSubroutine = record
+    Kind:  byte;
+    Addr,
+    Off,
+    Len:   integer;
+    Acc16,
+    Ind16: byte;
+    Name:  string[20];
+    Descr: string[255];
+  end;
+  pSubroutine = ^tSubroutine;
+
+  tData = record
+    Kind:  byte;
+    Addr,
+    Off,
+    Len:   integer;
+    RowBytes,
+    RowsNum: byte;
+    Name:  string[20];
+    Descr: string[255];
+  end;
+  pData = ^tData;
+
 
 var
   ROM: array of byte;
 
 
 
-procedure TfmMain.bLoadClick(Sender: TObject);
+procedure TfmMain.bLoadROMClick(Sender: TObject);
   var f, n: cardinal;
 begin
-  if not dOpen.Execute then exit;
+  if not dOpenROM.Execute then exit;
 
-  f := CreateFile(pchar(dOpen.FileName), GENERIC_READ, FILE_SHARE_READ, nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+  f := CreateFile(pchar(dOpenROM.FileName), GENERIC_READ, FILE_SHARE_READ, nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
   //n := GetLastError;
   //ShowMessage(IntToStr(n));
   if f = INVALID_HANDLE_VALUE then raise Exception.Create(format('Problem opening %s', [dOpen.FileName]));
@@ -349,7 +401,7 @@ begin
   ReadFile(f, ROM[0], n, n, nil);
   CloseHandle(f);
 
-  Caption := dOpen.FileName;
+  Caption := dOpenROM.FileName;
 end;
 
 
@@ -367,16 +419,7 @@ function ParseParam(Prm, Len: byte; Off, Addr: integer): string;
   var c: shortint;
       b: smallint;
 begin
-  Result := ' ';
-{  if (Prm > 0) and (Prm < 22) then Result := format(cFmtAddr[Prm], [Param])
-  else if Prm = 22 then begin
-    c := ROM[Off];
-    Result := format(' $%.4x', [Addr + c + 2]);
-  end else if Prm = 23 then begin
-    b := pSmallInt(@ROM[Off])^;
-    Result := format(' $%.4x', [Addr + b +3]);
-  end else if Prm = 24 then
-    Result := format(' $%d,$%d', [ ROM[Off], ROM[Off+1] ]);}
+  Result := '';
   case Prm of
     1..21: Result := format(cFmtAddr[Prm], [Param]);
     22: begin
@@ -392,13 +435,19 @@ begin
 end;
 
 
-procedure TfmMain.bStartClick(Sender: TObject);
-  var i, j: integer;
+procedure TfmMain.Parse(Method: integer);
+  var j: integer;
       o, a: integer;
       s: string;
       c, l, b,
       Acc16, Ind16: byte;  // 0 - 8 bit; 1 - 16 bit
+      Num, NumCmd, NumByte: integer;
 begin
+  Num := seLen.Value;
+  NumCmd  := 0;
+  NumByte := 0;
+  c := 0;
+
   Acc16 := ord(cbAcc16.Checked);
   Ind16 := ord(cbInd16.Checked);
 
@@ -406,7 +455,9 @@ begin
   a := StrToInt(eAddress.Text);
   Memo.Clear;
 
-  for i := 1 to seLen.Value do begin
+  while ( (Method = cMthCmd)  and (NumCmd < Num) ) or
+        ( (Method = cMthByte) and (NumByte < Num) ) or
+        ( (Method = cMthCode) and not (c in [$60, $6B, $40, $4C, $80]) ) do begin
     c := ROM[o];
     l := CPU[c].Len;
     if c in [$69, $29, $89, $C9, $49, $A9, $09, $E9] then
@@ -435,9 +486,127 @@ begin
 
     inc(o, l);
     inc(a, l);
+    inc(NumCmd);
+    inc(NumByte, l);
     Memo.Lines.Add(s);
   end;
+
+  if Method = cMthCode then seLen.Value := NumByte;
 end;
 
+
+procedure TfmMain.bParseCmdClick(Sender: TObject);
+begin
+  Parse(tButton(Sender).Tag);
+end;
+
+
+procedure TfmMain.bAddSubClick(Sender: TObject);
+  var v: pSubroutine;
+begin
+  fmSubroutine.eAddress.Text   := eAddress.Text;
+  fmSubroutine.eOffset.Text    := eOffset.Text;
+  fmSubroutine.eLen.Text       := seLen.Text;
+  fmSubroutine.cbAcc16.Checked := cbAcc16.Checked;
+  fmSubroutine.cbInd16.Checked := cbInd16.Checked;
+
+  if fmSubroutine.ShowModal <> mrOK then exit;
+
+  New(v);
+  FillChar(v^, Sizeof(v^), 0);
+  v.Kind  := 1;
+  v.Addr  := StrToInt(fmSubroutine.eAddress.Text);
+  v.Off   := StrToInt(fmSubroutine.eOffset.Text);
+  v.Len   := StrToInt(fmSubroutine.eLen.Text);
+  v.Acc16 := ord(fmSubroutine.cbAcc16.Checked);
+  v.Ind16 := ord(fmSubroutine.cbInd16.Checked);
+  v.Name  := fmSubroutine.eSubName.Text;
+  v.Descr := fmSubroutine.eDescr.Text;
+
+  lbSub.AddItem(v.Name, tObject(v));
+end;
+
+
+procedure TfmMain.lbSubDrawItem(Control: TWinControl; Index: Integer; Rect: TRect; State: TOwnerDrawState);
+  var v: pSubroutine;
+      r: tRect;
+begin
+  v := Pointer(lbSub.Items.Objects[Index]);
+
+  r := Rect;
+  r.Bottom := r.Top +15;
+  lbSub.Canvas.Font.Style := [fsBold];
+  lbSub.Canvas.TextRect(r, r.Left+1, r.Top+1, v.Name);
+  //lbSub.Canvas.TextOut(r.Left+1, r.Top+1, v.Name);
+
+  r := Rect;
+  inc(r.Top, 15);
+  lbSub.Canvas.Font.Style := [];
+  //lbSub.Canvas.TextOut(r.Left+1, r.Top+1, v.Descr);
+  lbSub.Canvas.TextRect(r, r.Left+1, r.Top+1, v.Descr);
+
+  r := Rect;
+  r.Left := 140;
+  r.Bottom := r.Top +15;
+  lbSub.Canvas.TextRect(r, r.Left+1, r.Top+1, IntToHex(v.Addr, 6));
+end;
+
+
+procedure TfmMain.EmptyList;
+  var i: integer;
+begin
+  for i := 0 to lbSub.Count - 1 do
+    Dispose(pointer(lbSub.Items.Objects[i]));
+  lbSub.Clear;
+end;
+
+
+procedure TfmMain.bSaveClick(Sender: TObject);
+  var i: integer;
+      f: file of tSubroutine;
+begin
+  if not dSave.Execute then exit;
+
+  AssignFile(f, dSave.FileName);
+  Rewrite(f);
+  for i := 0 to lbSub.Count -1 do
+    Write(f, pSubroutine(lbSub.Items.Objects[i])^);
+  CloseFile(f);
+end;
+
+
+procedure TfmMain.bLoadClick(Sender: TObject);
+  var i, n: integer;
+      f: file of tSubroutine;
+      v: pSubroutine;
+begin
+  if not dOpen.Execute then exit;
+
+  AssignFile(f, dOpen.FileName);
+  Reset(f);
+  n := FileSize(f);  // return number of records, no size in bytes
+  EmptyList;
+  for i := 1 to n do begin
+    New(v);
+    Read(f, v^);
+    lbSub.AddItem(v.Name, tObject(v));
+  end;
+  CloseFile(f);
+end;
+
+
+procedure TfmMain.lbSubClick(Sender: TObject);
+  var v: pSubroutine;
+begin
+  if lbSub.ItemIndex < 0 then exit;
+  v := pointer(lbSub.Items.Objects[lbSub.ItemIndex]);
+
+  eOffset.Text    := format('$%.6x',[v.Off]);
+  eAddress.Text   := format('$%.6x',[v.Addr]);
+  seLen.Value     := v.Len;
+  cbAcc16.Checked := v.Acc16 = 1;
+  cbInd16.Checked := v.Ind16 = 1;
+  Parse(cMthByte);
+end;
 
 end.
