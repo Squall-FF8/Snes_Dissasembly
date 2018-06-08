@@ -85,23 +85,13 @@ object fmMain: TfmMain
       WordWrap = True
       OnClick = bParseCmdClick
     end
-    object seLen: TSpinEdit
-      Left = 280
-      Top = 24
-      Width = 49
-      Height = 22
-      MaxValue = 0
-      MinValue = 0
-      TabOrder = 4
-      Value = 10
-    end
     object cbAcc16: TCheckBox
       Left = 344
       Top = 16
       Width = 89
       Height = 17
       Caption = '16-bit A'
-      TabOrder = 5
+      TabOrder = 4
     end
     object cbInd16: TCheckBox
       Left = 344
@@ -109,7 +99,7 @@ object fmMain: TfmMain
       Width = 81
       Height = 17
       Caption = '16-bit X/Y'
-      TabOrder = 6
+      TabOrder = 5
     end
     object bParseByte: TButton
       Tag = 2
@@ -121,7 +111,7 @@ object fmMain: TfmMain
       Caption = 'Parse (bytes)'
       ParentShowHint = False
       ShowHint = True
-      TabOrder = 7
+      TabOrder = 6
       WordWrap = True
       OnClick = bParseCmdClick
     end
@@ -135,7 +125,7 @@ object fmMain: TfmMain
       Caption = 'Parse (special)'
       ParentShowHint = False
       ShowHint = True
-      TabOrder = 8
+      TabOrder = 7
       WordWrap = True
       OnClick = bParseCmdClick
     end
@@ -148,7 +138,7 @@ object fmMain: TfmMain
       Caption = 'Add'
       ParentShowHint = False
       ShowHint = True
-      TabOrder = 9
+      TabOrder = 8
       OnClick = bAddSubClick
     end
     object bLoad: TButton
@@ -160,7 +150,7 @@ object fmMain: TfmMain
       Caption = 'Load'
       ParentShowHint = False
       ShowHint = True
-      TabOrder = 10
+      TabOrder = 9
       OnClick = bLoadClick
     end
     object bSave: TButton
@@ -172,14 +162,21 @@ object fmMain: TfmMain
       Caption = 'Save'
       ParentShowHint = False
       ShowHint = True
-      TabOrder = 11
+      TabOrder = 10
       OnClick = bSaveClick
+    end
+    object eLen: TEdit
+      Left = 280
+      Top = 24
+      Width = 49
+      Height = 21
+      TabOrder = 11
     end
   end
   object Memo: TMemo
-    Left = 185
+    Left = 217
     Top = 53
-    Width = 643
+    Width = 611
     Height = 471
     Align = alClient
     Font.Charset = RUSSIAN_CHARSET
@@ -194,7 +191,7 @@ object fmMain: TfmMain
   object Panel2: TPanel
     Left = 0
     Top = 53
-    Width = 185
+    Width = 217
     Height = 471
     Align = alLeft
     BevelOuter = bvNone
@@ -202,19 +199,20 @@ object fmMain: TfmMain
     object lbSub: TListBox
       Left = 0
       Top = 41
-      Width = 185
+      Width = 217
       Height = 430
       Style = lbOwnerDrawFixed
       Align = alClient
-      ItemHeight = 30
+      ItemHeight = 32
       TabOrder = 0
       OnClick = lbSubClick
+      OnDblClick = lbSubDblClick
       OnDrawItem = lbSubDrawItem
     end
     object Panel3: TPanel
       Left = 0
       Top = 0
-      Width = 185
+      Width = 217
       Height = 41
       Align = alTop
       BevelOuter = bvNone

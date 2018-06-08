@@ -17,7 +17,6 @@ type
     eAddress: TEdit;
     bParseCmd: TButton;
     Memo: TMemo;
-    seLen: TSpinEdit;
     Label3: TLabel;
     cbAcc16: TCheckBox;
     cbInd16: TCheckBox;
@@ -31,6 +30,7 @@ type
     bSave: TButton;
     dSave: TSaveDialog;
     dOpen: TOpenDialog;
+    eLen: TEdit;
     procedure bLoadROMClick(Sender: TObject);
     procedure bParseCmdClick(Sender: TObject);
     procedure bAddSubClick(Sender: TObject);
@@ -39,6 +39,7 @@ type
     procedure bSaveClick(Sender: TObject);
     procedure bLoadClick(Sender: TObject);
     procedure lbSubClick(Sender: TObject);
+    procedure lbSubDblClick(Sender: TObject);
   private
     procedure Parse(Method: integer);
     procedure EmptyList;
@@ -443,7 +444,7 @@ procedure TfmMain.Parse(Method: integer);
       Acc16, Ind16: byte;  // 0 - 8 bit; 1 - 16 bit
       Num, NumCmd, NumByte: integer;
 begin
-  Num := seLen.Value;
+  Num := StrToInt(eLen.Text);
   NumCmd  := 0;
   NumByte := 0;
   c := 0;
@@ -475,12 +476,11 @@ begin
 
     b := ROM[o+1];
     if c = $C2 then begin  // REP
-      Acc16 := (b and $20) shr 5;
-      Ind16 := (b and $10) shr 4;
+      if (b and $20) > 0 then Acc16 := 1;
+      if (b and $10) > 0 then Ind16 := 1;
     end else if c = $E2 then begin  // SEP
-      b := b xor $30; //lets invert the 2 bits
-      Acc16 := (b and $20) shr 5;
-      Ind16 := (b and $10) shr 4;
+      if (b and $20) > 0 then Acc16 := 0;
+      if (b and $10) > 0 then Ind16 := 0;
     end;
 
 
@@ -491,7 +491,7 @@ begin
     Memo.Lines.Add(s);
   end;
 
-  if Method = cMthCode then seLen.Value := NumByte;
+  if Method = cMthCode then eLen.Text := IntToStr(NumByte);
 end;
 
 
@@ -506,7 +506,7 @@ procedure TfmMain.bAddSubClick(Sender: TObject);
 begin
   fmSubroutine.eAddress.Text   := eAddress.Text;
   fmSubroutine.eOffset.Text    := eOffset.Text;
-  fmSubroutine.eLen.Text       := seLen.Text;
+  fmSubroutine.eLen.Text       := eLen.Text;
   fmSubroutine.cbAcc16.Checked := cbAcc16.Checked;
   fmSubroutine.cbInd16.Checked := cbInd16.Checked;
 
@@ -536,7 +536,7 @@ begin
   r := Rect;
   r.Bottom := r.Top +15;
   lbSub.Canvas.Font.Style := [fsBold];
-  lbSub.Canvas.TextRect(r, r.Left+1, r.Top+1, v.Name);
+  lbSub.Canvas.TextRect(r, r.Left+1, r.Top+2, v.Name);
   //lbSub.Canvas.TextOut(r.Left+1, r.Top+1, v.Name);
 
   r := Rect;
@@ -548,7 +548,7 @@ begin
   r := Rect;
   r.Left := 140;
   r.Bottom := r.Top +15;
-  lbSub.Canvas.TextRect(r, r.Left+1, r.Top+1, IntToHex(v.Addr, 6));
+  lbSub.Canvas.TextRect(r, r.Left+1, r.Top+2, IntToHex(v.Addr, 6));
 end;
 
 
@@ -603,10 +603,38 @@ begin
 
   eOffset.Text    := format('$%.6x',[v.Off]);
   eAddress.Text   := format('$%.6x',[v.Addr]);
-  seLen.Value     := v.Len;
+  eLen.Text       := IntToStr(v.Len);
   cbAcc16.Checked := v.Acc16 = 1;
   cbInd16.Checked := v.Ind16 = 1;
   Parse(cMthByte);
+end;
+
+
+procedure TfmMain.lbSubDblClick(Sender: TObject);
+  var v: pSubroutine;
+begin
+  if lbSub.ItemIndex < 0 then exit;
+  v := pointer(lbSub.Items.Objects[lbSub.ItemIndex]);
+
+  fmSubroutine.eSubName.Text   := v.Name;
+  fmSubroutine.eDescr.Text     := v.Descr;
+  fmSubroutine.eAddress.Text   := format('$%.6x',[v.Addr]);;
+  fmSubroutine.eOffset.Text    := format('$%.6x',[v.Off]);
+  fmSubroutine.eLen.Text       := IntToStr(v.Len);
+  fmSubroutine.cbAcc16.Checked := v.Acc16 = 1;
+  fmSubroutine.cbInd16.Checked := v.Ind16 = 1;
+
+  if fmSubroutine.ShowModal <> mrOK then exit;
+
+  FillChar(v^, Sizeof(v^), 0);
+  v.Kind  := 1;
+  v.Addr  := StrToInt(fmSubroutine.eAddress.Text);
+  v.Off   := StrToInt(fmSubroutine.eOffset.Text);
+  v.Len   := StrToInt(fmSubroutine.eLen.Text);
+  v.Acc16 := ord(fmSubroutine.cbAcc16.Checked);
+  v.Ind16 := ord(fmSubroutine.cbInd16.Checked);
+  v.Name  := fmSubroutine.eSubName.Text;
+  v.Descr := fmSubroutine.eDescr.Text;
 end;
 
 end.
