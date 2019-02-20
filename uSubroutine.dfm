@@ -3,7 +3,7 @@ object fmSubroutine: TfmSubroutine
   Top = 114
   BorderStyle = bsDialog
   Caption = 'Subroutine Property'
-  ClientHeight = 282
+  ClientHeight = 280
   ClientWidth = 320
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -49,6 +49,13 @@ object fmSubroutine: TfmSubroutine
     Width = 36
     Height = 13
     Caption = 'Length:'
+  end
+  object lDataCol: TLabel
+    Left = 16
+    Top = 179
+    Width = 67
+    Height = 13
+    Caption = 'Bytes per row:'
   end
   object eSubName: TEdit
     Left = 88
@@ -122,5 +129,12 @@ object fmSubroutine: TfmSubroutine
     Height = 17
     Caption = '16-bit Index Registers (X/Y)'
     TabOrder = 8
+  end
+  object eDataCol: TEdit
+    Left = 88
+    Top = 176
+    Width = 65
+    Height = 21
+    TabOrder = 9
   end
 end

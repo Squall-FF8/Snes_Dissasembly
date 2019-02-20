@@ -1,7 +1,7 @@
 object fmMain: TfmMain
   Left = 404
   Top = 119
-  Width = 844
+  Width = 911
   Height = 563
   Caption = 'Disassembly'
   Color = clBtnFace
@@ -12,12 +12,13 @@ object fmMain: TfmMain
   Font.Style = []
   OldCreateOrder = False
   Position = poDesktopCenter
+  OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13
   object Panel1: TPanel
     Left = 0
     Top = 0
-    Width = 828
+    Width = 895
     Height = 53
     Align = alTop
     BevelOuter = bvNone
@@ -130,19 +131,21 @@ object fmMain: TfmMain
       OnClick = bParseCmdClick
     end
     object bAddSub: TButton
+      Tag = 1
       Left = 648
-      Top = 16
-      Width = 33
-      Height = 25
+      Top = 12
+      Width = 41
+      Height = 33
       Hint = 'Add a Subroutine to the List'
-      Caption = 'Add'
+      Caption = 'Add (sub)'
       ParentShowHint = False
       ShowHint = True
       TabOrder = 8
+      WordWrap = True
       OnClick = bAddSubClick
     end
     object bLoad: TButton
-      Left = 712
+      Left = 752
       Top = 4
       Width = 56
       Height = 20
@@ -154,7 +157,7 @@ object fmMain: TfmMain
       OnClick = bLoadClick
     end
     object bSave: TButton
-      Left = 712
+      Left = 752
       Top = 26
       Width = 56
       Height = 20
@@ -171,12 +174,27 @@ object fmMain: TfmMain
       Width = 49
       Height = 21
       TabOrder = 11
+      Text = '20'
+    end
+    object bAddData: TButton
+      Tag = 2
+      Left = 696
+      Top = 12
+      Width = 41
+      Height = 33
+      Hint = 'Add a Subroutine to the List'
+      Caption = 'Add (data)'
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 12
+      WordWrap = True
+      OnClick = bAddSubClick
     end
   end
   object Memo: TMemo
-    Left = 217
+    Left = 241
     Top = 53
-    Width = 611
+    Width = 455
     Height = 471
     Align = alClient
     Font.Charset = RUSSIAN_CHARSET
@@ -191,7 +209,7 @@ object fmMain: TfmMain
   object Panel2: TPanel
     Left = 0
     Top = 53
-    Width = 217
+    Width = 241
     Height = 471
     Align = alLeft
     BevelOuter = bvNone
@@ -199,11 +217,12 @@ object fmMain: TfmMain
     object lbSub: TListBox
       Left = 0
       Top = 41
-      Width = 217
+      Width = 241
       Height = 430
       Style = lbOwnerDrawFixed
       Align = alClient
       ItemHeight = 32
+      PopupMenu = popSub
       TabOrder = 0
       OnClick = lbSubClick
       OnDblClick = lbSubDblClick
@@ -212,10 +231,54 @@ object fmMain: TfmMain
     object Panel3: TPanel
       Left = 0
       Top = 0
-      Width = 217
+      Width = 241
       Height = 41
       Align = alTop
       BevelOuter = bvNone
+      TabOrder = 1
+      Visible = False
+    end
+  end
+  object Panel4: TPanel
+    Left = 696
+    Top = 53
+    Width = 199
+    Height = 471
+    Align = alRight
+    BevelOuter = bvNone
+    Caption = 'Panel4'
+    TabOrder = 3
+    object Splitter1: TSplitter
+      Left = 0
+      Top = 293
+      Width = 199
+      Height = 3
+      Cursor = crVSplit
+      Align = alBottom
+    end
+    object lbCalls: TListBox
+      Left = 0
+      Top = 296
+      Width = 199
+      Height = 175
+      Align = alBottom
+      ItemHeight = 13
+      PopupMenu = popCalls
+      TabOrder = 0
+      OnDblClick = lbCallsDblClick
+    end
+    object mParams: TMemo
+      Left = 0
+      Top = 0
+      Width = 199
+      Height = 293
+      Align = alClient
+      Font.Charset = RUSSIAN_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -11
+      Font.Name = 'Courier New'
+      Font.Style = []
+      ParentFont = False
       TabOrder = 1
     end
   end
@@ -235,5 +298,49 @@ object fmMain: TfmMain
     Filter = 'Disassembly Files|*.sda|All Files (*.*)|*.*'
     Left = 248
     Top = 272
+  end
+  object popCalls: TPopupMenu
+    Left = 768
+    Top = 392
+    object miCalls_Use: TMenuItem
+      Caption = 'Use'
+      OnClick = miCalls_UseClick
+    end
+    object miCalls_Delete: TMenuItem
+      Caption = 'Delete'
+      ShortCut = 46
+      OnClick = miCalls_DeleteClick
+    end
+    object N1: TMenuItem
+      Caption = '-'
+    end
+    object miCalls_SortAsc: TMenuItem
+      Caption = 'Sort Ascendent'
+      OnClick = miCalls_SortAscClick
+    end
+    object miCalls_SortDesc: TMenuItem
+      Caption = 'Sort Descendent'
+      OnClick = miCalls_SortDescClick
+    end
+  end
+  object popSub: TPopupMenu
+    Left = 96
+    Top = 240
+    object miSub_Del: TMenuItem
+      Caption = 'Delete'
+      ShortCut = 46
+      OnClick = miSub_DelClick
+    end
+    object N2: TMenuItem
+      Caption = '-'
+    end
+    object miSub_SortName: TMenuItem
+      Caption = 'Sort by Name'
+      OnClick = miSub_SortNameClick
+    end
+    object SortbyAddress1: TMenuItem
+      Caption = 'Sort by Address'
+      OnClick = SortbyAddress1Click
+    end
   end
 end

@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, ExtCtrls, Spin;
+  Dialogs, StdCtrls, ExtCtrls, Spin, Menus;
 
 type
   TfmMain = class(TForm)
@@ -31,6 +31,22 @@ type
     dSave: TSaveDialog;
     dOpen: TOpenDialog;
     eLen: TEdit;
+    Panel4: TPanel;
+    lbCalls: TListBox;
+    Splitter1: TSplitter;
+    bAddData: TButton;
+    popCalls: TPopupMenu;
+    miCalls_Delete: TMenuItem;
+    miCalls_Use: TMenuItem;
+    mParams: TMemo;
+    miCalls_SortAsc: TMenuItem;
+    miCalls_SortDesc: TMenuItem;
+    N1: TMenuItem;
+    popSub: TPopupMenu;
+    miSub_Del: TMenuItem;
+    N2: TMenuItem;
+    miSub_SortName: TMenuItem;
+    SortbyAddress1: TMenuItem;
     procedure bLoadROMClick(Sender: TObject);
     procedure bParseCmdClick(Sender: TObject);
     procedure bAddSubClick(Sender: TObject);
@@ -40,9 +56,21 @@ type
     procedure bLoadClick(Sender: TObject);
     procedure lbSubClick(Sender: TObject);
     procedure lbSubDblClick(Sender: TObject);
+    procedure lbCallsDblClick(Sender: TObject);
+    procedure miCalls_DeleteClick(Sender: TObject);
+    procedure miCalls_UseClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure miCalls_SortAscClick(Sender: TObject);
+    procedure miCalls_SortDescClick(Sender: TObject);
+    procedure miSub_DelClick(Sender: TObject);
+    procedure miSub_SortNameClick(Sender: TObject);
+    procedure SortbyAddress1Click(Sender: TObject);
   private
     procedure Parse(Method: integer);
+    procedure ParseData(Col: integer);
     procedure EmptyList;
+    function AddrInList(Addr: integer): boolean;
+    procedure EnableControls(State: boolean);
   public
     { Public declarations }
   end;
@@ -356,6 +384,8 @@ cFmtAddr: array[1..23] of string = (
   cMthByte = 2;
   cMthCode = 3;
 
+  cSubCodes: set of byte = [$20, $22, $FC];
+
 
 type
   tSubroutine = record
@@ -382,10 +412,22 @@ type
   end;
   pData = ^tData;
 
+  tAddress = record
+    Addr,
+    Off: integer;
+    Acc16,
+    Ind16: byte;
+  end;
+  pAddress = ^tAddress;
 
 var
   ROM: array of byte;
 
+
+procedure TfmMain.FormCreate(Sender: TObject);
+begin
+  EnableControls(false);
+end;
 
 
 procedure TfmMain.bLoadROMClick(Sender: TObject);
@@ -403,11 +445,13 @@ begin
   CloseHandle(f);
 
   Caption := dOpenROM.FileName;
+  EnableControls(true);
 end;
 
 
-function ParseParam(Prm, Len: byte; Off, Addr: integer): string;
+function ParseParam(Prm, Len: byte; Off, Addr: integer; List: tStrings): string;
   function Param: string;
+    var s: string;
   begin
     Result := ' ';
     case Len of
@@ -415,6 +459,9 @@ function ParseParam(Prm, Len: byte; Off, Addr: integer): string;
       2: Result := format('$%.4x', [ pWord(@ROM[Off])^ ]);
       3: Result := format('$%.6x', [ pCardinal(@ROM[Off])^ and $FFFFFF]);
     end;
+    s := List.Values[Result];
+    if s <> '' then
+      Result := s;
   end;
 
   var c: shortint;
@@ -431,18 +478,28 @@ begin
       b := pSmallInt(@ROM[Off])^;
       Result := format(' $%.4x', [Addr + b +3]);
      end;
-    24: Result := format(' $%d,$%d', [ ROM[Off], ROM[Off+1] ]);
+    24: Result := format(' $%.2x,$%.2x', [ ROM[Off], ROM[Off+1] ]);
   end;
+end;
+
+function GetParam(Addr: integer; Len: byte): integer;
+  var i: integer;
+begin
+  Result := 0;
+  for i := Len downto 1 do
+    Result := Result shl 8 + ROM[Addr + i];
 end;
 
 
 procedure TfmMain.Parse(Method: integer);
-  var j: integer;
-      o, a: integer;
+  var i, j: integer;
+      o, a, bank, off: integer;
       s: string;
       c, l, b,
       Acc16, Ind16: byte;  // 0 - 8 bit; 1 - 16 bit
       Num, NumCmd, NumByte: integer;
+      v: pAddress;
+      f: boolean;
 begin
   Num := StrToInt(eLen.Text);
   NumCmd  := 0;
@@ -452,8 +509,10 @@ begin
   Acc16 := ord(cbAcc16.Checked);
   Ind16 := ord(cbInd16.Checked);
 
-  o := StrToInt(eOffset.Text);
-  a := StrToInt(eAddress.Text);
+  o    := StrToInt(eOffset.Text);
+  a    := StrToInt(eAddress.Text);
+  off  := a-o;
+  bank := a and $FF0000;
   Memo.Clear;
 
   while ( (Method = cMthCmd)  and (NumCmd < Num) ) or
@@ -472,15 +531,33 @@ begin
     for j := l to 3 do
       s := s + '   ';
     s := s + CPU[c].Name;
-    s := s + ParseParam(CPU[c].Addr, l-1, o+1, a and $FFFF);
+    s := s + ParseParam(CPU[c].Addr, l-1, o+1, a and $FFFF, mParams.Lines);
 
     b := ROM[o+1];
-    if c = $C2 then begin  // REP
+    if c = $C2 then begin                 // REP
       if (b and $20) > 0 then Acc16 := 1;
       if (b and $10) > 0 then Ind16 := 1;
-    end else if c = $E2 then begin  // SEP
+    end else if c = $E2 then begin        // SEP
       if (b and $20) > 0 then Acc16 := 0;
       if (b and $10) > 0 then Ind16 := 0;
+    end;
+
+    if c in cSubCodes then begin          // JSR
+      j := GetParam(o, l-1);
+      if l < 4 then inc(j, bank);
+      f := not AddrInList(j);
+      for i := 0 to lbCalls.Count -1 do
+        if pAddress(lbCalls.Items.Objects[i]).Addr = j then
+          f := false;
+      if f then begin
+        New(v);
+        FillChar(v^, SizeOf(v^), 0);
+        v.Addr  := j;
+        v.Off   := off;
+        v.Acc16 := Acc16;
+        v.Ind16 := Ind16;
+        lbCalls.AddItem(IntToHex(j, 6), tObject(v));
+      end;
     end;
 
 
@@ -495,6 +572,29 @@ begin
 end;
 
 
+procedure TfmMain.ParseData(Col: integer);
+  var i, j: integer;
+      o, a, Num: integer;
+      s: string;
+begin
+  o   := StrToInt(eOffset.Text);
+  a   := StrToInt(eAddress.Text);
+  Num := StrToInt(eLen.Text);
+  Memo.Clear;
+
+  i := 0;
+  while i < Num do begin
+    s := format('%.6x:  ', [a+i]);
+    for j := 1 to Col do begin
+      if i >= Num then break;
+      s := s + format('%.2x ', [ROM[o + i]]);
+      inc(i);
+    end;
+    Memo.Lines.Add(s);
+  end;
+end;
+
+
 procedure TfmMain.bParseCmdClick(Sender: TObject);
 begin
   Parse(tButton(Sender).Tag);
@@ -503,23 +603,29 @@ end;
 
 procedure TfmMain.bAddSubClick(Sender: TObject);
   var v: pSubroutine;
+      Kind: byte;
 begin
+  Kind := tButton(Sender).Tag;
+  fmSubroutine.SetKind(Kind);
+
   fmSubroutine.eAddress.Text   := eAddress.Text;
   fmSubroutine.eOffset.Text    := eOffset.Text;
   fmSubroutine.eLen.Text       := eLen.Text;
   fmSubroutine.cbAcc16.Checked := cbAcc16.Checked;
   fmSubroutine.cbInd16.Checked := cbInd16.Checked;
+  fmSubroutine.eDataCol.Text   := '4';
 
   if fmSubroutine.ShowModal <> mrOK then exit;
 
   New(v);
   FillChar(v^, Sizeof(v^), 0);
-  v.Kind  := 1;
+  v.Kind  := Kind;
   v.Addr  := StrToInt(fmSubroutine.eAddress.Text);
   v.Off   := StrToInt(fmSubroutine.eOffset.Text);
   v.Len   := StrToInt(fmSubroutine.eLen.Text);
   v.Acc16 := ord(fmSubroutine.cbAcc16.Checked);
   v.Ind16 := ord(fmSubroutine.cbInd16.Checked);
+  if Kind = 2 then v.Acc16 := StrToInt(fmSubroutine.eDataCol.Text);
   v.Name  := fmSubroutine.eSubName.Text;
   v.Descr := fmSubroutine.eDescr.Text;
 
@@ -536,7 +642,7 @@ begin
   r := Rect;
   r.Bottom := r.Top +15;
   lbSub.Canvas.Font.Style := [fsBold];
-  lbSub.Canvas.TextRect(r, r.Left+1, r.Top+2, v.Name);
+  lbSub.Canvas.TextRect(r, r.Left+5, r.Top+2, v.Name);
   //lbSub.Canvas.TextOut(r.Left+1, r.Top+1, v.Name);
 
   r := Rect;
@@ -546,7 +652,7 @@ begin
   lbSub.Canvas.TextRect(r, r.Left+1, r.Top+1, v.Descr);
 
   r := Rect;
-  r.Left := 140;
+  r.Left := 170;
   r.Bottom := r.Top +15;
   lbSub.Canvas.TextRect(r, r.Left+1, r.Top+2, IntToHex(v.Addr, 6));
 end;
@@ -606,28 +712,33 @@ begin
   eLen.Text       := IntToStr(v.Len);
   cbAcc16.Checked := v.Acc16 = 1;
   cbInd16.Checked := v.Ind16 = 1;
-  Parse(cMthByte);
+  if v.Kind = 1 then Parse(cMthByte)
+                else ParseData(v.Acc16);
 end;
 
 
 procedure TfmMain.lbSubDblClick(Sender: TObject);
   var v: pSubroutine;
+      Kind: byte;
 begin
   if lbSub.ItemIndex < 0 then exit;
   v := pointer(lbSub.Items.Objects[lbSub.ItemIndex]);
+  Kind := v.Kind;
+  fmSubroutine.SetKind(Kind);
 
   fmSubroutine.eSubName.Text   := v.Name;
   fmSubroutine.eDescr.Text     := v.Descr;
-  fmSubroutine.eAddress.Text   := format('$%.6x',[v.Addr]);;
+  fmSubroutine.eAddress.Text   := format('$%.6x',[v.Addr]);
   fmSubroutine.eOffset.Text    := format('$%.6x',[v.Off]);
   fmSubroutine.eLen.Text       := IntToStr(v.Len);
   fmSubroutine.cbAcc16.Checked := v.Acc16 = 1;
   fmSubroutine.cbInd16.Checked := v.Ind16 = 1;
+  fmSubroutine.eDataCol.Text   := IntToStr(v.Acc16);
 
   if fmSubroutine.ShowModal <> mrOK then exit;
 
   FillChar(v^, Sizeof(v^), 0);
-  v.Kind  := 1;
+  v.Kind  := Kind;
   v.Addr  := StrToInt(fmSubroutine.eAddress.Text);
   v.Off   := StrToInt(fmSubroutine.eOffset.Text);
   v.Len   := StrToInt(fmSubroutine.eLen.Text);
@@ -635,6 +746,129 @@ begin
   v.Ind16 := ord(fmSubroutine.cbInd16.Checked);
   v.Name  := fmSubroutine.eSubName.Text;
   v.Descr := fmSubroutine.eDescr.Text;
+  if Kind = 2 then v.Acc16 := StrToInt(fmSubroutine.eDataCol.Text);
+end;
+
+
+procedure TfmMain.EnableControls(State: boolean);
+begin
+  bParseCmd.Enabled := State;
+  bParseByte.Enabled := State;
+  bParseCode.Enabled := State;
+  bAddSub.Enabled    := State;
+  bAddData.Enabled   := State;
+  lbSub.Enabled      := State;
+end;
+
+
+procedure TfmMain.miSub_DelClick(Sender: TObject);
+  var ind: integer;
+begin
+  ind := lbSub.ItemIndex;
+  if ind < 0 then exit;
+  Dispose(pointer(lbSub.Items.Objects[ind]));
+  lbSub.Items.Delete(ind);
+end;
+
+
+procedure TfmMain.miSub_SortNameClick(Sender: TObject);
+  var i, j, m: integer;
+begin
+  for i := 0 to lbSub.Count -2 do begin
+    m := i;
+    for j := i + 1 to lbSub.Count -1 do
+      if pData(lbSub.Items.Objects[m]).Name > pData(lbSub.Items.Objects[j]).Name then
+        m := j;
+    if m <> i then
+      lbSub.Items.Exchange(m, i);
+  end;
+end;
+
+
+procedure TfmMain.SortbyAddress1Click(Sender: TObject);
+  var i, j, m: integer;
+begin
+  for i := 0 to lbSub.Count -2 do begin
+    m := i;
+    for j := i + 1 to lbSub.Count -1 do
+      if pData(lbSub.Items.Objects[m]).Addr > pData(lbSub.Items.Objects[j]).Addr then
+        m := j;
+    if m <> i then
+      lbSub.Items.Exchange(m, i);
+  end;
+end;
+
+
+
+// ==========================
+// Address Handling
+// ==========================
+function TfmMain.AddrInList(Addr: integer): boolean;
+  var i: integer;
+begin
+  Result := false;
+  for i := 0 to lbSub.Count -1 do
+    if pSubroutine(lbSub.Items.Objects[i])^.Addr = Addr then
+      Result := true;
+end;
+
+
+procedure TfmMain.lbCallsDblClick(Sender: TObject);
+  var ind: integer;
+      v: pAddress;
+begin
+  ind := lbCalls.ItemIndex;
+  if ind < 0 then exit;
+  v := pAddress(lbCalls.Items.Objects[ind]);
+
+  Memo.Clear;
+  eAddress.Text   := format('$%.6x',[v.Addr]);
+  eOffset.Text    := format('$%.6x',[v.Addr - v.Off]);
+  cbAcc16.Checked := v.Acc16 = 1;
+  cbInd16.Checked := v.Ind16 = 1;
+end;
+
+
+procedure TfmMain.miCalls_DeleteClick(Sender: TObject);
+  var ind: integer;
+begin
+  ind := lbCalls.ItemIndex;
+  if ind < 0 then exit;
+  Dispose(pointer(lbCalls.Items.Objects[ind]));
+  lbCalls.Items.Delete(ind);
+end;
+
+
+procedure TfmMain.miCalls_UseClick(Sender: TObject);
+begin
+  lbCallsDblClick(nil);
+end;
+
+
+procedure TfmMain.miCalls_SortAscClick(Sender: TObject);
+  var i, j, m: integer;
+begin
+  for i := 0 to lbCalls.Count -2 do begin
+    m := i;
+    for j := i + 1 to lbCalls.Count -1 do
+      if pAddress(lbCalls.Items.Objects[m]).Addr > pAddress(lbCalls.Items.Objects[j]).Addr then
+        m := j;
+    if m <> i then
+      lbCalls.Items.Exchange(m, i);
+  end;
+end;
+
+procedure TfmMain.miCalls_SortDescClick(Sender: TObject);
+  var i, j, m: integer;
+begin
+  for i := 0 to lbCalls.Count -2 do begin
+    m := i;
+    for j := i + 1 to lbCalls.Count -1 do
+      if pAddress(lbCalls.Items.Objects[m]).Addr < pAddress(lbCalls.Items.Objects[j]).Addr then
+        m := j;
+    if m <> i then
+      lbCalls.Items.Exchange(m, i);
+  end;
 end;
 
 end.

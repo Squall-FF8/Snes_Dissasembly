@@ -22,10 +22,12 @@ type
     eLen: TEdit;
     cbAcc16: TCheckBox;
     cbInd16: TCheckBox;
+    eDataCol: TEdit;
+    lDataCol: TLabel;
   private
     { Private declarations }
   public
-    { Public declarations }
+    procedure SetKind(Kind: byte);
   end;
 
 var
@@ -33,5 +35,16 @@ var
 
 implementation
 {$R *.dfm}
+
+
+procedure TfmSubroutine.SetKind(Kind: byte);
+begin
+  if Kind = 1 then Caption := 'Subroutine Property'
+              else Caption := 'Data-Block Property';
+  lDataCol.Visible := Kind = 2;
+  eDataCol.Visible := Kind = 2;
+  cbAcc16.Visible  := Kind = 1;
+  cbInd16.Visible  := Kind = 1;
+end;
 
 end.
