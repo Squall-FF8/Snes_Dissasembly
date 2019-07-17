@@ -4,20 +4,19 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, ExtCtrls, Spin, Menus;
+  Dialogs, StdCtrls, ExtCtrls, Spin, Menus, Buttons;
 
 type
   TfmMain = class(TForm)
     Panel1: TPanel;
     bLoadROM: TButton;
     dOpenROM: TOpenDialog;
-    Label1: TLabel;
+    lOffset: TLabel;
     eOffset: TEdit;
-    Label2: TLabel;
+    lAddress: TLabel;
     eAddress: TEdit;
     bParseCmd: TButton;
     Memo: TMemo;
-    Label3: TLabel;
     cbAcc16: TCheckBox;
     cbInd16: TCheckBox;
     bParseByte: TButton;
@@ -30,7 +29,6 @@ type
     bSave: TButton;
     dSave: TSaveDialog;
     dOpen: TOpenDialog;
-    eLen: TEdit;
     Panel4: TPanel;
     lbCalls: TListBox;
     Splitter1: TSplitter;
@@ -47,6 +45,14 @@ type
     N2: TMenuItem;
     miSub_SortName: TMenuItem;
     SortbyAddress1: TMenuItem;
+    seBytes: TSpinEdit;
+    seLines: TSpinEdit;
+    lBytes: TLabel;
+    lLines: TLabel;
+    bHeader: TSpeedButton;
+    bLoRom: TSpeedButton;
+    bHiRom: TSpeedButton;
+    Button1: TButton;
     procedure bLoadROMClick(Sender: TObject);
     procedure bParseCmdClick(Sender: TObject);
     procedure bAddSubClick(Sender: TObject);
@@ -65,6 +71,12 @@ type
     procedure miSub_DelClick(Sender: TObject);
     procedure miSub_SortNameClick(Sender: TObject);
     procedure SortbyAddress1Click(Sender: TObject);
+    procedure seBytesKeyUp(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
+    procedure seLinesKeyUp(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
+    procedure eAddressKeyPress(Sender: TObject; var Key: Char);
+    procedure eOffsetKeyPress(Sender: TObject; var Key: Char);
   private
     procedure Parse(Method: integer);
     procedure ParseData(Col: integer);
@@ -380,35 +392,41 @@ cFmtAddr: array[1..23] of string = (
   );
 
   // Parse method constants
-  cMthCmd  = 1;
+  cMthLine = 1;
   cMthByte = 2;
   cMthCode = 3;
+  cMthNext = 4;
 
   cSubCodes: set of byte = [$20, $22, $FC];
 
 
 type
+  tName = string[20];
+  tDescription = string[255];
+
   tSubroutine = record
     Kind:  byte;
     Addr,
     Off,
-    Len:   integer;
+    Bytes,
+    Lines: integer;
     Acc16,
     Ind16: byte;
-    Name:  string[20];
-    Descr: string[255];
+    Name:  tName;
+    Descr: tDescription;
   end;
   pSubroutine = ^tSubroutine;
 
   tData = record
-    Kind:  byte;
+    Kind:    byte;
     Addr,
     Off,
-    Len:   integer;
+    Bytes,
+    Filler:  integer;
     RowBytes,
     RowsNum: byte;
-    Name:  string[20];
-    Descr: string[255];
+    Name:    tName;
+    Descr:   tDescription;
   end;
   pData = ^tData;
 
@@ -497,13 +515,13 @@ procedure TfmMain.Parse(Method: integer);
       s: string;
       c, l, b,
       Acc16, Ind16: byte;  // 0 - 8 bit; 1 - 16 bit
-      Num, NumCmd, NumByte: integer;
+      Num, NumLine, NumByte: integer;
       v: pAddress;
       f: boolean;
 begin
-  Num := StrToInt(eLen.Text);
-  NumCmd  := 0;
-  NumByte := 0;
+  Num := 0;
+  if Method = cMthByte then Num := seBytes.Value;
+  if Method = cMthLine then Num := seLines.Value;
   c := 0;
 
   Acc16 := ord(cbAcc16.Checked);
@@ -513,11 +531,21 @@ begin
   a    := StrToInt(eAddress.Text);
   off  := a-o;
   bank := a and $FF0000;
-  Memo.Clear;
 
-  while ( (Method = cMthCmd)  and (NumCmd < Num) ) or
+  if Method = cMthNext then begin
+    NumLine := seLines.Value;
+    NumByte := seBytes.Value;
+    inc(a, NumByte);
+    inc(o, NumByte);
+  end else begin
+    NumLine := 0;
+    NumByte := 0;
+    Memo.Clear;
+  end;
+
+  while ( (Method = cMthLine) and (NumLine < Num) ) or
         ( (Method = cMthByte) and (NumByte < Num) ) or
-        ( (Method = cMthCode) and not (c in [$60, $6B, $40, $4C, $80]) ) do begin
+        ( (Method >= cMthCode) and not (c in [$60, $6B, $40, $4C, $80]) ) do begin
     c := ROM[o];
     l := CPU[c].Len;
     if c in [$69, $29, $89, $C9, $49, $A9, $09, $E9] then
@@ -563,12 +591,13 @@ begin
 
     inc(o, l);
     inc(a, l);
-    inc(NumCmd);
+    inc(NumLine);
     inc(NumByte, l);
     Memo.Lines.Add(s);
   end;
 
-  if Method = cMthCode then eLen.Text := IntToStr(NumByte);
+  if Method <> cMthByte then seBytes.Value := NumByte;
+  if Method <> cMthLine then seLines.Value := NumLine;
 end;
 
 
@@ -579,7 +608,7 @@ procedure TfmMain.ParseData(Col: integer);
 begin
   o   := StrToInt(eOffset.Text);
   a   := StrToInt(eAddress.Text);
-  Num := StrToInt(eLen.Text);
+  Num := seBytes.Value;
   Memo.Clear;
 
   i := 0;
@@ -610,7 +639,8 @@ begin
 
   fmSubroutine.eAddress.Text   := eAddress.Text;
   fmSubroutine.eOffset.Text    := eOffset.Text;
-  fmSubroutine.eLen.Text       := eLen.Text;
+  fmSubroutine.seBytes.Value   := seBytes.Value;
+  fmSubroutine.seLines.Value   := seLines.Value;
   fmSubroutine.cbAcc16.Checked := cbAcc16.Checked;
   fmSubroutine.cbInd16.Checked := cbInd16.Checked;
   fmSubroutine.eDataCol.Text   := '4';
@@ -622,7 +652,8 @@ begin
   v.Kind  := Kind;
   v.Addr  := StrToInt(fmSubroutine.eAddress.Text);
   v.Off   := StrToInt(fmSubroutine.eOffset.Text);
-  v.Len   := StrToInt(fmSubroutine.eLen.Text);
+  v.Bytes := fmSubroutine.seBytes.Value;
+  v.Lines := fmSubroutine.seLines.Value;
   v.Acc16 := ord(fmSubroutine.cbAcc16.Checked);
   v.Ind16 := ord(fmSubroutine.cbInd16.Checked);
   if Kind = 2 then v.Acc16 := StrToInt(fmSubroutine.eDataCol.Text);
@@ -709,7 +740,8 @@ begin
 
   eOffset.Text    := format('$%.6x',[v.Off]);
   eAddress.Text   := format('$%.6x',[v.Addr]);
-  eLen.Text       := IntToStr(v.Len);
+  seBytes.Value   := v.Bytes;
+  seLines.Value   := v.Lines;
   cbAcc16.Checked := v.Acc16 = 1;
   cbInd16.Checked := v.Ind16 = 1;
   if v.Kind = 1 then Parse(cMthByte)
@@ -730,7 +762,8 @@ begin
   fmSubroutine.eDescr.Text     := v.Descr;
   fmSubroutine.eAddress.Text   := format('$%.6x',[v.Addr]);
   fmSubroutine.eOffset.Text    := format('$%.6x',[v.Off]);
-  fmSubroutine.eLen.Text       := IntToStr(v.Len);
+  fmSubroutine.seBytes.Value   := v.Bytes;
+  fmSubroutine.seLines.Value   := v.Lines;
   fmSubroutine.cbAcc16.Checked := v.Acc16 = 1;
   fmSubroutine.cbInd16.Checked := v.Ind16 = 1;
   fmSubroutine.eDataCol.Text   := IntToStr(v.Acc16);
@@ -741,7 +774,8 @@ begin
   v.Kind  := Kind;
   v.Addr  := StrToInt(fmSubroutine.eAddress.Text);
   v.Off   := StrToInt(fmSubroutine.eOffset.Text);
-  v.Len   := StrToInt(fmSubroutine.eLen.Text);
+  v.Bytes := fmSubroutine.seBytes.Value;
+  v.Lines := fmSubroutine.seLines.Value;
   v.Acc16 := ord(fmSubroutine.cbAcc16.Checked);
   v.Ind16 := ord(fmSubroutine.cbInd16.Checked);
   v.Name  := fmSubroutine.eSubName.Text;
@@ -752,12 +786,22 @@ end;
 
 procedure TfmMain.EnableControls(State: boolean);
 begin
-  bParseCmd.Enabled := State;
+  bParseCmd.Enabled  := State;
   bParseByte.Enabled := State;
   bParseCode.Enabled := State;
   bAddSub.Enabled    := State;
   bAddData.Enabled   := State;
   lbSub.Enabled      := State;
+  cbAcc16.Enabled    := State;
+  cbInd16.Enabled    := State;
+  seBytes.Enabled    := State;
+  seLines.Enabled    := State;
+  lBytes.Enabled     := State;
+  lLines.Enabled     := State;
+  eAddress.Enabled   := State;
+  eOffset.Enabled    := State;
+  lAddress.Enabled   := State;
+  lOffset.Enabled    := State;
 end;
 
 
@@ -868,6 +912,44 @@ begin
         m := j;
     if m <> i then
       lbCalls.Items.Exchange(m, i);
+  end;
+end;
+
+
+procedure TfmMain.seBytesKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
+begin
+  if Key = vk_Return then
+    Parse(cMthByte);
+end;
+
+procedure TfmMain.seLinesKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
+begin
+  if Key = vk_Return then
+    Parse(cMthLine);
+end;
+
+
+procedure TfmMain.eAddressKeyPress(Sender: TObject; var Key: Char);
+  var a: integer;
+begin
+  if Key = #13 then begin
+    Key := #0;
+    a := StrToInt(eAddress.Text);
+    if bHiRom.Down  then a := a and $3FFFFF;
+    if bHeader.Down then inc(a, $200);
+    eOffset.Text := '$' + IntToHex(a, 6) ;
+  end;
+end;
+
+procedure TfmMain.eOffsetKeyPress(Sender: TObject; var Key: Char);
+  var a: integer;
+begin
+  if Key = #13 then begin
+    Key := #0;
+    a := StrToInt(eOffset.Text);
+    if bHiRom.Down  then a := a or $C00000;
+    if bHeader.Down then dec(a, $200);
+    eAddress.Text := '$' + IntToHex(a, 6) ;
   end;
 end;
 

@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls;
+  Dialogs, StdCtrls, Spin;
 
 type
   TfmSubroutine = class(TForm)
@@ -19,11 +19,13 @@ type
     Label4: TLabel;
     eOffset: TEdit;
     Label5: TLabel;
-    eLen: TEdit;
     cbAcc16: TCheckBox;
     cbInd16: TCheckBox;
     eDataCol: TEdit;
     lDataCol: TLabel;
+    Label6: TLabel;
+    seBytes: TSpinEdit;
+    seLines: TSpinEdit;
   private
     { Private declarations }
   public

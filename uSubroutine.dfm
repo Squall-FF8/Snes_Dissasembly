@@ -52,10 +52,17 @@ object fmSubroutine: TfmSubroutine
   end
   object lDataCol: TLabel
     Left = 16
-    Top = 179
+    Top = 203
     Width = 67
     Height = 13
     Caption = 'Bytes per row:'
+  end
+  object Label6: TLabel
+    Left = 16
+    Top = 171
+    Width = 36
+    Height = 13
+    Caption = 'Length:'
   end
   object eSubName: TEdit
     Left = 88
@@ -107,34 +114,47 @@ object fmSubroutine: TfmSubroutine
     MaxLength = 20
     TabOrder = 5
   end
-  object eLen: TEdit
-    Left = 88
-    Top = 144
-    Width = 113
-    Height = 21
-    TabOrder = 6
-  end
   object cbAcc16: TCheckBox
     Left = 88
-    Top = 176
+    Top = 192
     Width = 153
     Height = 17
     Caption = '16 bit Accumulator (A)'
-    TabOrder = 7
+    TabOrder = 6
   end
   object cbInd16: TCheckBox
     Left = 88
-    Top = 200
+    Top = 216
     Width = 169
     Height = 17
     Caption = '16-bit Index Registers (X/Y)'
-    TabOrder = 8
+    TabOrder = 7
   end
   object eDataCol: TEdit
     Left = 88
-    Top = 176
+    Top = 200
     Width = 65
     Height = 21
+    TabOrder = 8
+  end
+  object seBytes: TSpinEdit
+    Left = 88
+    Top = 144
+    Width = 81
+    Height = 22
+    MaxValue = 0
+    MinValue = 0
     TabOrder = 9
+    Value = 0
+  end
+  object seLines: TSpinEdit
+    Left = 88
+    Top = 168
+    Width = 81
+    Height = 22
+    MaxValue = 0
+    MinValue = 0
+    TabOrder = 10
+    Value = 0
   end
 end
