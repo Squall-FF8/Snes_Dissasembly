@@ -106,7 +106,7 @@ object fmMain: TfmMain
       Width = 81
       Height = 17
       Caption = '16-bit A'
-      TabOrder = 4
+      TabOrder = 3
     end
     object cbInd16: TCheckBox
       Left = 408
@@ -114,7 +114,7 @@ object fmMain: TfmMain
       Width = 81
       Height = 17
       Caption = '16-bit X/Y'
-      TabOrder = 5
+      TabOrder = 4
     end
     object bLoadROM: TButton
       Left = 16
@@ -146,45 +146,17 @@ object fmMain: TfmMain
       Text = '$C00000'
       OnKeyPress = eAddressKeyPress
     end
-    object bParseCmd: TButton
-      Tag = 1
-      Left = 480
-      Top = 12
-      Width = 48
-      Height = 33
-      Hint = 'Parse '#39'Num'#39' instructions'
-      Caption = 'Parse (lines)'
-      ParentShowHint = False
-      ShowHint = True
-      TabOrder = 3
-      WordWrap = True
-      OnClick = bParseCmdClick
-    end
-    object bParseByte: TButton
-      Tag = 2
-      Left = 536
-      Top = 12
-      Width = 48
-      Height = 33
-      Hint = 'Parse '#39'Num'#39' bytes'
-      Caption = 'Parse (bytes)'
-      ParentShowHint = False
-      ShowHint = True
-      TabOrder = 6
-      WordWrap = True
-      OnClick = bParseCmdClick
-    end
     object bParseCode: TButton
       Tag = 3
-      Left = 592
+      Left = 496
       Top = 12
       Width = 48
       Height = 33
       Hint = 'Parse until special opcodes occur (RTS, RTL, RTI, JMP, BRA)'
-      Caption = 'Parse (special)'
+      Caption = 'Parse'
       ParentShowHint = False
       ShowHint = True
-      TabOrder = 7
+      TabOrder = 5
       WordWrap = True
       OnClick = bParseCmdClick
     end
@@ -198,7 +170,7 @@ object fmMain: TfmMain
       Caption = 'Add (sub)'
       ParentShowHint = False
       ShowHint = True
-      TabOrder = 8
+      TabOrder = 6
       WordWrap = True
       OnClick = bAddSubClick
     end
@@ -211,7 +183,7 @@ object fmMain: TfmMain
       Caption = 'Load'
       ParentShowHint = False
       ShowHint = True
-      TabOrder = 9
+      TabOrder = 7
       OnClick = bLoadClick
     end
     object bSave: TButton
@@ -223,7 +195,7 @@ object fmMain: TfmMain
       Caption = 'Save'
       ParentShowHint = False
       ShowHint = True
-      TabOrder = 10
+      TabOrder = 8
       OnClick = bSaveClick
     end
     object bAddData: TButton
@@ -236,7 +208,7 @@ object fmMain: TfmMain
       Caption = 'Add (data)'
       ParentShowHint = False
       ShowHint = True
-      TabOrder = 11
+      TabOrder = 9
       WordWrap = True
       OnClick = bAddSubClick
     end
@@ -248,9 +220,9 @@ object fmMain: TfmMain
       AutoSize = False
       MaxValue = 0
       MinValue = 0
-      TabOrder = 12
+      TabOrder = 10
       Value = 0
-      OnKeyUp = seBytesKeyUp
+      OnChange = seBytesChange
     end
     object seLines: TSpinEdit
       Left = 344
@@ -260,13 +232,13 @@ object fmMain: TfmMain
       AutoSize = False
       MaxValue = 0
       MinValue = 0
-      TabOrder = 13
+      TabOrder = 11
       Value = 0
-      OnKeyUp = seLinesKeyUp
+      OnChange = seLinesChange
     end
-    object Button1: TButton
+    object bParseNext: TButton
       Tag = 4
-      Left = 648
+      Left = 552
       Top = 12
       Width = 48
       Height = 33
@@ -274,7 +246,7 @@ object fmMain: TfmMain
       Caption = 'Parse Next'
       ParentShowHint = False
       ShowHint = True
-      TabOrder = 14
+      TabOrder = 12
       WordWrap = True
       OnClick = bParseCmdClick
     end
@@ -287,7 +259,7 @@ object fmMain: TfmMain
     Align = alClient
     Font.Charset = RUSSIAN_CHARSET
     Font.Color = clWindowText
-    Font.Height = -12
+    Font.Height = -13
     Font.Name = 'Lucida Console'
     Font.Style = []
     ParentFont = False

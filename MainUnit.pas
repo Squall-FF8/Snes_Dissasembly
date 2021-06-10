@@ -15,11 +15,9 @@ type
     eOffset: TEdit;
     lAddress: TLabel;
     eAddress: TEdit;
-    bParseCmd: TButton;
     Memo: TMemo;
     cbAcc16: TCheckBox;
     cbInd16: TCheckBox;
-    bParseByte: TButton;
     bParseCode: TButton;
     Panel2: TPanel;
     lbSub: TListBox;
@@ -52,7 +50,7 @@ type
     bHeader: TSpeedButton;
     bLoRom: TSpeedButton;
     bHiRom: TSpeedButton;
-    Button1: TButton;
+    bParseNext: TButton;
     procedure bLoadROMClick(Sender: TObject);
     procedure bParseCmdClick(Sender: TObject);
     procedure bAddSubClick(Sender: TObject);
@@ -71,12 +69,10 @@ type
     procedure miSub_DelClick(Sender: TObject);
     procedure miSub_SortNameClick(Sender: TObject);
     procedure SortbyAddress1Click(Sender: TObject);
-    procedure seBytesKeyUp(Sender: TObject; var Key: Word;
-      Shift: TShiftState);
-    procedure seLinesKeyUp(Sender: TObject; var Key: Word;
-      Shift: TShiftState);
     procedure eAddressKeyPress(Sender: TObject; var Key: Char);
     procedure eOffsetKeyPress(Sender: TObject; var Key: Char);
+    procedure seBytesChange(Sender: TObject);
+    procedure seLinesChange(Sender: TObject);
   private
     procedure Parse(Method: integer);
     procedure ParseData(Col: integer);
@@ -786,9 +782,8 @@ end;
 
 procedure TfmMain.EnableControls(State: boolean);
 begin
-  bParseCmd.Enabled  := State;
-  bParseByte.Enabled := State;
   bParseCode.Enabled := State;
+  bParseNext.Enabled := State;
   bAddSub.Enabled    := State;
   bAddData.Enabled   := State;
   lbSub.Enabled      := State;
@@ -916,19 +911,6 @@ begin
 end;
 
 
-procedure TfmMain.seBytesKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
-begin
-  if Key = vk_Return then
-    Parse(cMthByte);
-end;
-
-procedure TfmMain.seLinesKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
-begin
-  if Key = vk_Return then
-    Parse(cMthLine);
-end;
-
-
 procedure TfmMain.eAddressKeyPress(Sender: TObject; var Key: Char);
   var a: integer;
 begin
@@ -951,6 +933,16 @@ begin
     if bHeader.Down then dec(a, $200);
     eAddress.Text := '$' + IntToHex(a, 6) ;
   end;
+end;
+
+procedure TfmMain.seBytesChange(Sender: TObject);
+begin
+  Parse(cMthByte);
+end;
+
+procedure TfmMain.seLinesChange(Sender: TObject);
+begin
+  Parse(cMthLine);
 end;
 
 end.
