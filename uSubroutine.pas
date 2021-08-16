@@ -21,11 +21,13 @@ type
     Label5: TLabel;
     cbAcc16: TCheckBox;
     cbInd16: TCheckBox;
-    eDataCol: TEdit;
     lDataCol: TLabel;
-    Label6: TLabel;
+    lLInes: TLabel;
     seBytes: TSpinEdit;
     seLines: TSpinEdit;
+    Label7: TLabel;
+    lpLines: TLabel;
+    sePerRow: TSpinEdit;
   private
     { Private declarations }
   public
@@ -44,7 +46,10 @@ begin
   if Kind = 1 then Caption := 'Subroutine Property'
               else Caption := 'Data-Block Property';
   lDataCol.Visible := Kind = 2;
-  eDataCol.Visible := Kind = 2;
+  sePerRow.Visible := Kind = 2;
+  lLines.Visible   := Kind = 1;
+  lpLines.Visible  := Kind = 1;
+  seLines.Visible  := Kind = 1;
   cbAcc16.Visible  := Kind = 1;
   cbInd16.Visible  := Kind = 1;
 end;

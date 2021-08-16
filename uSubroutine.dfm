@@ -3,7 +3,7 @@ object fmSubroutine: TfmSubroutine
   Top = 114
   BorderStyle = bsDialog
   Caption = 'Subroutine Property'
-  ClientHeight = 280
+  ClientHeight = 304
   ClientWidth = 320
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -13,6 +13,9 @@ object fmSubroutine: TfmSubroutine
   Font.Style = []
   OldCreateOrder = False
   Position = poMainFormCenter
+  DesignSize = (
+    320
+    304)
   PixelsPerInch = 96
   TextHeight = 13
   object Label1: TLabel
@@ -57,12 +60,38 @@ object fmSubroutine: TfmSubroutine
     Height = 13
     Caption = 'Bytes per row:'
   end
-  object Label6: TLabel
+  object lLInes: TLabel
     Left = 16
     Top = 171
     Width = 36
     Height = 13
     Caption = 'Length:'
+  end
+  object Label7: TLabel
+    Left = 184
+    Top = 147
+    Width = 36
+    Height = 13
+    Caption = 'in bytes'
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clGrayText
+    Font.Height = -11
+    Font.Name = 'MS Sans Serif'
+    Font.Style = []
+    ParentFont = False
+  end
+  object lpLines: TLabel
+    Left = 184
+    Top = 171
+    Width = 64
+    Height = 13
+    Caption = 'in instructions'
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clGrayText
+    Font.Height = -11
+    Font.Name = 'MS Sans Serif'
+    Font.Style = []
+    ParentFont = False
   end
   object eSubName: TEdit
     Left = 88
@@ -82,18 +111,20 @@ object fmSubroutine: TfmSubroutine
   end
   object bOK: TButton
     Left = 64
-    Top = 240
+    Top = 264
     Width = 75
     Height = 25
+    Anchors = [akLeft, akBottom]
     Caption = 'OK'
     ModalResult = 1
     TabOrder = 2
   end
   object bCancel: TButton
     Left = 176
-    Top = 240
+    Top = 264
     Width = 75
     Height = 25
+    Anchors = [akLeft, akBottom]
     Caption = 'Cancel'
     ModalResult = 2
     TabOrder = 3
@@ -130,13 +161,6 @@ object fmSubroutine: TfmSubroutine
     Caption = '16-bit Index Registers (X/Y)'
     TabOrder = 7
   end
-  object eDataCol: TEdit
-    Left = 88
-    Top = 200
-    Width = 65
-    Height = 21
-    TabOrder = 8
-  end
   object seBytes: TSpinEdit
     Left = 88
     Top = 144
@@ -144,7 +168,7 @@ object fmSubroutine: TfmSubroutine
     Height = 22
     MaxValue = 0
     MinValue = 0
-    TabOrder = 9
+    TabOrder = 8
     Value = 0
   end
   object seLines: TSpinEdit
@@ -154,6 +178,16 @@ object fmSubroutine: TfmSubroutine
     Height = 22
     MaxValue = 0
     MinValue = 0
+    TabOrder = 9
+    Value = 0
+  end
+  object sePerRow: TSpinEdit
+    Left = 88
+    Top = 200
+    Width = 81
+    Height = 22
+    MaxValue = 255
+    MinValue = 1
     TabOrder = 10
     Value = 0
   end
