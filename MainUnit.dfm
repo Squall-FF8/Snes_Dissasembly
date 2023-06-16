@@ -342,6 +342,7 @@ object fmMain: TfmMain
       PopupMenu = popParams
       ShowHint = True
       TabOrder = 1
+      OnDblClick = lbParamsDblClick
       OnDrawItem = lbParamsDrawItem
     end
   end
@@ -466,6 +467,10 @@ object fmMain: TfmMain
     object miParam_Save: TMenuItem
       Caption = 'Save to File'
       OnClick = miParam_SaveClick
+    end
+    object miParam_Import: TMenuItem
+      Caption = 'Import symbol file'
+      OnClick = miParam_ImportClick
     end
   end
 end

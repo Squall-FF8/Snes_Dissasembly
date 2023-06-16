@@ -102,6 +102,7 @@ type
     niSub_AddNext: TMenuItem;
     miSub_Edit: TMenuItem;
     bGenDoc: TButton;
+    miParam_Import: TMenuItem;
     procedure bLoadROMClick(Sender: TObject);
     procedure bAddDataClick(Sender: TObject);
     procedure lbSubDrawItem(Control: TWinControl; Index: Integer;
@@ -137,6 +138,8 @@ type
     procedure miSub_EditClick(Sender: TObject);
     procedure seBytesPerRowChange(Sender: TObject);
     procedure bGenDocClick(Sender: TObject);
+    procedure miParam_ImportClick(Sender: TObject);
+    procedure lbParamsDblClick(Sender: TObject);
   private
     procedure Parse(Method: integer; Data: pData = nil);
     procedure ParseData(Col: integer);
@@ -145,6 +148,7 @@ type
     procedure EnableControls(State: boolean);
     procedure RefreshParams;
     procedure ChangeKind;
+    procedure ImportSymolFile;
   public
     Kind: byte;
     Diff: integer;
@@ -431,7 +435,7 @@ const
   );
 
 cFmtAddr: array[1..23] of string = (
-    ' #%s',      //#const
+    ' #%.2x',      //#const
     ' (%s)',     //(addr)
     ' (%s,X)',   //(addr,X)
     ' (%s)',     //(dp)
@@ -558,6 +562,10 @@ begin
 
   Caption := dOpenROM.FileName;
   EnableControls(true);
+
+  dOpen.FileName := ChangeFileExt(dOpenROM.FileName, '.sym');
+  if FileExists(dOpen.FileName) then
+    ImportSymolFile;
 end;
 
 
@@ -577,7 +585,8 @@ function ParseParam(Prm, Len: byte; Off, Addr: integer; List: tStrings): string;
 begin
   Result := '';
   case Prm of
-    1..21: Result := format(cFmtAddr[Prm], [Param]);
+    1: Result := format(cFmtAddr[Prm], [ ROM[Off] ]);
+    2..21: Result := format(cFmtAddr[Prm], [Param]);
     22: begin
       c := ROM[Off];
       Result := format(' $%.4x', [Addr + c + 2]);
@@ -649,6 +658,9 @@ begin
   while ( (Method = cMthLine) and (NumLine < Num) ) or
         ( (Method = cMthByte) and (NumByte < Num) ) or
         ( (Method >= cMthCode) and not (c in [$60, $6B, $40, $4C, $80]) ) do begin
+    s := Params.Values[IntToStr(a)];
+    if s <> '' then Memo.Lines.Add('  ' + s + ':');
+
     c := ROM[o];
     l := CPU[c].Len;
     if c in [$69, $29, $89, $C9, $49, $A9, $09, $E9] then
@@ -1092,7 +1104,7 @@ end;
 // Know Memory Address Handling (aka Params)
 // ==========================
 procedure TfmMain.lbParamsDrawItem(Control: TWinControl; Index: Integer; Rect: TRect; State: TOwnerDrawState);
-  const dX = 60;
+  const dX = 65;
   var s: string;
       r: tRect;
 begin
@@ -1247,6 +1259,65 @@ begin
     if v.Kind = 1 then Parse(cMthByte, v)
                   else ParseData(v.RowBytes);
   end;
+end;
+
+
+procedure TfmMain.miParam_ImportClick(Sender: TObject);
+begin
+  dOpen.Filter := 'VICE symbol file|*.sym|All Files (*.*)|*.*';
+  if not dOpen.Execute then exit;
+  ImportSymolFile;
+end;
+
+
+procedure TfmMain.ImportSymolFile;
+  var i, p, e: integer;
+      s, s1, s2: string;
+      list: TStringList;
+
+  function GetParam: string;
+  begin
+    Result := '';
+    e := p;
+    while (e <= length(s)) and (s[e] <> ' ') do inc(e);
+    Result := Copy(s, p, e-p);
+    p := e + 1;
+  end;
+
+begin
+  lbParams.Clear;
+  list := TStringList.Create;
+  list.LoadFromFile(dOpen.FileName);
+  for i := 0 to list.Count - 1 do begin
+    s := list[i];
+    if s = '' then continue;
+    p := 1;
+    if GetParam <> 'al' then continue;
+    s1 := GetParam;
+    s2 := GetParam;
+    if s2[1] = '.' then Delete(s2, 1, 1);
+    if Copy(s2, 1, 2) = '__' then continue;
+    lbParams.Items.Add('$' + s1 + '=' + s2);
+    //lbParams.Items.Add(s1 + '=' + s2);
+  end;
+  list.Free;
+
+  lbParams.Sorted := true;
+  lbParams.Sorted := false;
+  RefreshParams;
+end;
+
+
+procedure TfmMain.lbParamsDblClick(Sender: TObject);
+  var n: integer;
+      c: char;
+begin
+  n := lbParams.ItemIndex;
+  if n < 0 then exit;
+
+  eAddress.Text := lbParams.Items.Names[n];
+  c := #13;
+  eAddressKeyPress(eAddress, c);
 end;
 
 end.
